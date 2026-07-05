@@ -12,4 +12,14 @@
     <color name="aetheris_text_soft">#AEBED2</color>
     <color name="aetheris_line">#315C7F</color>
     <color name="ic_launcher_background">#050B18</color>
+    <color name="aetheris_nebula">#6C7DFF</color>
+    <color name="aetheris_panel_high">#172D4A</color>
+    <color name="aetheris_panel">#0B1628</color>
+    <color name="aetheris_panel_soft">#102032</color>
+    <color name="colorPrimary">#44E8FF</color>
+    <color name="colorPrimaryDark">#030814</color>
+    <color name="colorAccent">#44E8FF</color>
+    <color name="colorBackground">#030814</color>
+    <color name="colorSurface">#0B1628</color>
+    <color name="colorOnSurface">#F6FAFF</color>
 </resources>
