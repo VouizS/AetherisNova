@@ -2,16 +2,17 @@ package com.swlab.aetherisnova;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,7 +34,9 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,17 +49,22 @@ public class MainActivity extends Activity {
     private WebView webView;
     private EditText addressBar;
     private FrameLayout stage;
-    private LinearLayout homeOverlay;
+    private View homeOverlay;
     private PermissionRequest pendingPermissionRequest;
 
-    private final int voidColor = Color.rgb(5, 9, 20);
-    private final int deepColor = Color.rgb(7, 16, 31);
-    private final int panelColor = Color.rgb(11, 22, 40);
-    private final int highColor = Color.rgb(21, 40, 69);
-    private final int orbitColor = Color.rgb(66, 232, 255);
-    private final int nebulaColor = Color.rgb(90, 124, 255);
+    private final int voidColor = Color.rgb(3, 8, 20);
+    private final int nightColor = Color.rgb(6, 17, 31);
+    private final int deepColor = Color.rgb(9, 24, 43);
+    private final int glassColor = Color.argb(210, 12, 24, 42);
+    private final int glassSoftColor = Color.argb(165, 18, 34, 56);
+    private final int glassHighColor = Color.argb(230, 23, 45, 74);
+    private final int orbitColor = Color.rgb(68, 232, 255);
+    private final int orbitSoftColor = Color.rgb(154, 245, 255);
+    private final int auroraColor = Color.rgb(108, 125, 255);
+    private final int lumenColor = Color.rgb(183, 156, 255);
     private final int textColor = Color.rgb(246, 250, 255);
-    private final int softTextColor = Color.rgb(184, 199, 218);
+    private final int softTextColor = Color.rgb(174, 190, 210);
+    private final int lineColor = Color.rgb(49, 92, 127);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +85,7 @@ public class MainActivity extends Activity {
         Window window = getWindow();
         if (window != null) {
             window.setStatusBarColor(voidColor);
-            window.setNavigationBarColor(deepColor);
+            window.setNavigationBarColor(voidColor);
             if (Build.VERSION.SDK_INT >= 23) {
                 window.getDecorView().setSystemUiVisibility(0);
             }
@@ -85,26 +93,35 @@ public class MainActivity extends Activity {
     }
 
     private void buildInterface() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(voidColor);
-        root.setLayoutParams(new LinearLayout.LayoutParams(-1, -1));
+        FrameLayout root = new FrameLayout(this);
+        root.setBackground(backgroundDrawable());
+        root.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
 
-        root.addView(createTopBar());
+        LinearLayout shell = new LinearLayout(this);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setPadding(dp(12), dp(8), dp(12), dp(10));
+        shell.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+
+        shell.addView(createTopBar());
 
         stage = new FrameLayout(this);
-        stage.setLayoutParams(new LinearLayout.LayoutParams(-1, 0, 1));
+        LinearLayout.LayoutParams stageParams = new LinearLayout.LayoutParams(-1, 0, 1);
+        stageParams.topMargin = dp(6);
+        stageParams.bottomMargin = dp(8);
+        stage.setLayoutParams(stageParams);
 
         webView = new WebView(this);
         webView.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+        webView.setBackgroundColor(voidColor);
         stage.addView(webView);
 
         homeOverlay = createHomeOverlay();
         stage.addView(homeOverlay);
 
-        root.addView(stage);
-        root.addView(createBottomBar());
+        shell.addView(stage);
+        shell.addView(createBottomDock());
 
+        root.addView(shell);
         setContentView(root);
     }
 
@@ -112,18 +129,18 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(dp(12), dp(10), dp(12), dp(8));
-        top.setBackgroundColor(voidColor);
-        top.setLayoutParams(new LinearLayout.LayoutParams(-1, dp(72)));
+        top.setPadding(0, 0, 0, 0);
+        top.setLayoutParams(new LinearLayout.LayoutParams(-1, dp(58)));
 
         TextView mark = new TextView(this);
         mark.setText("A");
         mark.setGravity(Gravity.CENTER);
         mark.setTextColor(voidColor);
         mark.setTypeface(Typeface.DEFAULT_BOLD);
-        mark.setTextSize(20);
-        mark.setBackground(makeRound(orbitColor, dp(18), 0, 0));
-        LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(dp(42), dp(42));
+        mark.setTextSize(19);
+        mark.setBackground(circleGradient());
+        mark.setElevation(dp(8));
+        LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(dp(48), dp(48));
         markParams.rightMargin = dp(10);
         top.addView(mark, markParams);
 
@@ -133,11 +150,11 @@ public class MainActivity extends Activity {
         addressBar.setHintTextColor(softTextColor);
         addressBar.setTextSize(14);
         addressBar.setHint("Pesquisar ou digitar endereço");
-        addressBar.setPadding(dp(16), 0, dp(16), 0);
+        addressBar.setPadding(dp(18), 0, dp(18), 0);
         addressBar.setSelectAllOnFocus(true);
         addressBar.setImeOptions(EditorInfo.IME_ACTION_GO);
         addressBar.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        addressBar.setBackground(makeRound(highColor, dp(26), orbitColor, 1));
+        addressBar.setBackground(roundGradient(glassHighColor, glassSoftColor, dp(28), orbitColor, 1));
         addressBar.setOnEditorActionListener((v, actionId, event) -> {
             boolean enter = event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_UP;
             if (actionId == EditorInfo.IME_ACTION_GO || enter) {
@@ -146,35 +163,46 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        top.addView(addressBar, new LinearLayout.LayoutParams(0, dp(46), 1));
+        top.addView(addressBar, new LinearLayout.LayoutParams(0, dp(48), 1));
 
-        TextView go = chip("Ir");
+        TextView go = topAction("Ir");
         go.setOnClickListener(v -> openUrl(addressBar.getText().toString()));
-        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(dp(54), dp(42));
+        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(dp(58), dp(48));
         goParams.leftMargin = dp(10);
         top.addView(go, goParams);
 
         return top;
     }
 
-    private LinearLayout createHomeOverlay() {
+    private View createHomeOverlay() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
+        scroll.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+
         LinearLayout home = new LinearLayout(this);
         home.setOrientation(LinearLayout.VERTICAL);
         home.setGravity(Gravity.CENTER_HORIZONTAL);
-        home.setPadding(dp(22), dp(34), dp(22), dp(20));
-        home.setBackgroundColor(voidColor);
-        home.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+        home.setPadding(dp(8), dp(18), dp(8), dp(22));
+        scroll.addView(home, new ScrollView.LayoutParams(-1, -2));
+
+        TextView orbit = new TextView(this);
+        orbit.setText("◌");
+        orbit.setTextColor(Color.argb(150, 68, 232, 255));
+        orbit.setTextSize(54);
+        orbit.setGravity(Gravity.CENTER);
+        home.addView(orbit, new LinearLayout.LayoutParams(-1, dp(46)));
 
         TextView brand = new TextView(this);
-        brand.setText("Aetheris Nova");
+        brand.setText("Aetheris");
         brand.setTextColor(textColor);
-        brand.setTextSize(32);
+        brand.setTextSize(34);
         brand.setTypeface(Typeface.DEFAULT_BOLD);
         brand.setGravity(Gravity.CENTER);
         home.addView(brand, new LinearLayout.LayoutParams(-1, -2));
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Navegação própria. Interface orbital. Base limpa.");
+        subtitle.setText("Glass Orbit UI • navegação limpa e própria");
         subtitle.setTextColor(softTextColor);
         subtitle.setTextSize(14);
         subtitle.setGravity(Gravity.CENTER);
@@ -182,15 +210,25 @@ public class MainActivity extends Activity {
         subParams.topMargin = dp(8);
         home.addView(subtitle, subParams);
 
+        LinearLayout searchCard = new LinearLayout(this);
+        searchCard.setOrientation(LinearLayout.HORIZONTAL);
+        searchCard.setGravity(Gravity.CENTER_VERTICAL);
+        searchCard.setPadding(dp(14), dp(10), dp(10), dp(10));
+        searchCard.setBackground(roundGradient(glassColor, glassSoftColor, dp(32), orbitColor, 1));
+        searchCard.setElevation(dp(8));
+        LinearLayout.LayoutParams searchCardParams = new LinearLayout.LayoutParams(-1, dp(68));
+        searchCardParams.topMargin = dp(28);
+        home.addView(searchCard, searchCardParams);
+
         EditText search = new EditText(this);
         search.setSingleLine(true);
         search.setTextColor(textColor);
         search.setHintTextColor(softTextColor);
         search.setTextSize(16);
         search.setHint("Buscar na web");
-        search.setPadding(dp(18), 0, dp(18), 0);
+        search.setPadding(dp(8), 0, dp(8), 0);
+        search.setBackgroundColor(Color.TRANSPARENT);
         search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        search.setBackground(makeRound(highColor, dp(30), orbitColor, 1));
         search.setOnEditorActionListener((v, actionId, event) -> {
             boolean enter = event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_UP;
             if (actionId == EditorInfo.IME_ACTION_SEARCH || enter) {
@@ -199,116 +237,185 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, dp(58));
-        searchParams.topMargin = dp(34);
-        home.addView(search, searchParams);
+        searchCard.addView(search, new LinearLayout.LayoutParams(0, -1, 1));
 
-        LinearLayout row1 = quickRow();
-        row1.addView(quick("Google", "https://www.google.com"));
-        row1.addView(quick("YouTube", "https://www.youtube.com"));
-        home.addView(row1);
+        TextView searchGo = topAction("↗");
+        searchGo.setTextSize(20);
+        searchGo.setOnClickListener(v -> openUrl(search.getText().toString()));
+        searchCard.addView(searchGo, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        LinearLayout row2 = quickRow();
-        row2.addView(quick("GitHub", "https://github.com"));
-        row2.addView(quick("Duck", "https://duckduckgo.com"));
-        home.addView(row2);
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(2);
+        grid.setUseDefaultMargins(false);
+        LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(-1, -2);
+        gridParams.topMargin = dp(18);
+        home.addView(grid, gridParams);
 
-        TextView note = new TextView(this);
-        note.setText("0.1.0 Foundation • a nova base oficial do Aetheris");
-        note.setTextColor(softTextColor);
-        note.setTextSize(12);
-        note.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams noteParams = new LinearLayout.LayoutParams(-1, -2);
-        noteParams.topMargin = dp(26);
-        home.addView(note, noteParams);
+        grid.addView(quickTile("Google", "Busca principal", "https://www.google.com"));
+        grid.addView(quickTile("YouTube", "Vídeos", "https://www.youtube.com"));
+        grid.addView(quickTile("GitHub", "Código", "https://github.com"));
+        grid.addView(quickTile("Duck", "Privacidade", "https://duckduckgo.com"));
 
-        return home;
+        LinearLayout status = new LinearLayout(this);
+        status.setOrientation(LinearLayout.VERTICAL);
+        status.setPadding(dp(18), dp(16), dp(18), dp(16));
+        status.setBackground(roundGradient(Color.argb(120, 12, 24, 42), Color.argb(80, 18, 34, 56), dp(26), lineColor, 1));
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(-1, -2);
+        statusParams.topMargin = dp(20);
+        home.addView(status, statusParams);
+
+        TextView statusTitle = smallLabel("Aetheris Nova 0.1.1");
+        statusTitle.setTextColor(orbitSoftColor);
+        statusTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        status.addView(statusTitle);
+
+        TextView statusBody = smallLabel("Interface Glass Orbit aplicada como base visual própria. Ainda é leve, sem blur real pesado.");
+        LinearLayout.LayoutParams bodyParams = new LinearLayout.LayoutParams(-1, -2);
+        bodyParams.topMargin = dp(6);
+        status.addView(statusBody, bodyParams);
+
+        return scroll;
     }
 
-    private LinearLayout quickRow() {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(58));
-        params.topMargin = dp(14);
-        row.setLayoutParams(params);
-        return row;
+    private View quickTile(String title, String caption, String url) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER_VERTICAL);
+        tile.setPadding(dp(16), dp(12), dp(16), dp(12));
+        tile.setBackground(roundGradient(glassColor, glassSoftColor, dp(28), Color.argb(100, 68, 232, 255), 1));
+        tile.setElevation(dp(6));
+        tile.setOnClickListener(v -> openUrl(url));
+
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.width = 0;
+        params.height = dp(82);
+        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        params.setMargins(dp(5), dp(5), dp(5), dp(5));
+        tile.setLayoutParams(params);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextColor(textColor);
+        titleView.setTextSize(16);
+        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setGravity(Gravity.CENTER);
+        tile.addView(titleView, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView captionView = new TextView(this);
+        captionView.setText(caption);
+        captionView.setTextColor(softTextColor);
+        captionView.setTextSize(11);
+        captionView.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams capParams = new LinearLayout.LayoutParams(-1, -2);
+        capParams.topMargin = dp(4);
+        tile.addView(captionView, capParams);
+
+        return tile;
     }
 
-    private TextView quick(String label, String url) {
-        TextView view = chip(label);
-        view.setTextSize(14);
-        view.setOnClickListener(v -> openUrl(url));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(50), 1);
-        params.leftMargin = dp(6);
-        params.rightMargin = dp(6);
-        view.setLayoutParams(params);
-        return view;
-    }
+    private View createBottomDock() {
+        LinearLayout dock = new LinearLayout(this);
+        dock.setOrientation(LinearLayout.HORIZONTAL);
+        dock.setGravity(Gravity.CENTER);
+        dock.setPadding(dp(8), dp(7), dp(8), dp(7));
+        dock.setBackground(roundGradient(Color.argb(225, 6, 17, 31), Color.argb(210, 9, 24, 43), dp(30), Color.argb(120, 68, 232, 255), 1));
+        dock.setElevation(dp(10));
 
-    private View createBottomBar() {
-        LinearLayout bottom = new LinearLayout(this);
-        bottom.setOrientation(LinearLayout.HORIZONTAL);
-        bottom.setGravity(Gravity.CENTER);
-        bottom.setPadding(dp(10), dp(8), dp(10), dp(10));
-        bottom.setBackgroundColor(deepColor);
-        bottom.setLayoutParams(new LinearLayout.LayoutParams(-1, dp(68)));
+        LinearLayout.LayoutParams dockParams = new LinearLayout.LayoutParams(-1, dp(64));
+        dockParams.leftMargin = dp(2);
+        dockParams.rightMargin = dp(2);
+        dock.setLayoutParams(dockParams);
 
-        TextView back = nav("‹");
+        TextView back = dockButton("‹");
         back.setOnClickListener(v -> {
             if (webView.canGoBack()) webView.goBack();
         });
 
-        TextView forward = nav("›");
+        TextView forward = dockButton("›");
         forward.setOnClickListener(v -> {
             if (webView.canGoForward()) webView.goForward();
         });
 
-        TextView home = nav("⌂");
+        TextView home = dockButton("⌂");
         home.setOnClickListener(v -> showHome());
 
-        TextView reload = nav("↻");
+        TextView reload = dockButton("↻");
         reload.setOnClickListener(v -> webView.reload());
 
-        TextView menu = nav("☰");
-        menu.setOnClickListener(v -> showMenu());
+        TextView menu = dockButton("☰");
+        menu.setOnClickListener(v -> showMenuSheet());
 
-        bottom.addView(back);
-        bottom.addView(forward);
-        bottom.addView(home);
-        bottom.addView(reload);
-        bottom.addView(menu);
+        dock.addView(back);
+        dock.addView(forward);
+        dock.addView(home);
+        dock.addView(reload);
+        dock.addView(menu);
 
-        return bottom;
+        return dock;
     }
 
-    private TextView chip(String text) {
+    private TextView topAction(String text) {
         TextView view = new TextView(this);
         view.setText(text);
         view.setGravity(Gravity.CENTER);
         view.setTextColor(voidColor);
         view.setTypeface(Typeface.DEFAULT_BOLD);
-        view.setBackground(makeRound(orbitColor, dp(22), 0, 0));
+        view.setTextSize(15);
+        view.setBackground(circleGradient());
+        view.setElevation(dp(8));
         return view;
     }
 
-    private TextView nav(String text) {
+    private TextView dockButton(String text) {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextSize(24);
         view.setGravity(Gravity.CENTER);
         view.setTextColor(textColor);
-        view.setBackground(makeRound(panelColor, dp(22), Color.rgb(40, 73, 108), 1));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1);
+        view.setBackground(roundGradient(Color.argb(150, 16, 32, 54), Color.argb(110, 12, 24, 42), dp(24), Color.argb(80, 49, 92, 127), 1));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1);
         params.leftMargin = dp(4);
         params.rightMargin = dp(4);
         view.setLayoutParams(params);
         return view;
     }
 
-    private android.graphics.drawable.GradientDrawable makeRound(int color, int radius, int strokeColor, int strokeWidthDp) {
-        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
-        drawable.setColor(color);
+    private TextView smallLabel(String text) {
+        TextView label = new TextView(this);
+        label.setText(text);
+        label.setTextColor(softTextColor);
+        label.setTextSize(12);
+        label.setGravity(Gravity.CENTER);
+        return label;
+    }
+
+    private GradientDrawable backgroundDrawable() {
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{
+                        Color.rgb(3, 8, 20),
+                        Color.rgb(5, 13, 28),
+                        Color.rgb(7, 20, 35)
+                }
+        );
+        return drawable;
+    }
+
+    private GradientDrawable circleGradient() {
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{orbitSoftColor, orbitColor, auroraColor}
+        );
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setCornerRadius(dp(22));
+        return drawable;
+    }
+
+    private GradientDrawable roundGradient(int startColor, int endColor, int radius, int strokeColor, int strokeWidthDp) {
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
         drawable.setCornerRadius(radius);
         if (strokeWidthDp > 0) {
             drawable.setStroke(dp(strokeWidthDp), strokeColor);
@@ -356,11 +463,6 @@ public class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 handleWebPermissionRequest(request);
-            }
-
-            @Override
-            public void onReceivedTitle(WebView view, String title) {
-                super.onReceivedTitle(view, title);
             }
         });
 
@@ -558,22 +660,112 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showMenu() {
-        String[] items = new String[]{"Copiar link", "Recarregar", "Página inicial", "Sobre Aetheris Nova"};
-        new AlertDialog.Builder(this)
-                .setTitle("Aetheris")
-                .setItems(items, (dialog, which) -> {
-                    if (which == 0) copyCurrentUrl();
-                    if (which == 1) webView.reload();
-                    if (which == 2) showHome();
-                    if (which == 3) showAbout();
-                })
-                .show();
+    private void showMenuSheet() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(18), dp(20), dp(18));
+        panel.setBackground(roundGradient(Color.argb(245, 12, 24, 42), Color.argb(238, 18, 34, 56), dp(30), Color.argb(120, 68, 232, 255), 1));
+
+        TextView title = new TextView(this);
+        title.setText("Aetheris");
+        title.setTextColor(textColor);
+        title.setTextSize(24);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView url = new TextView(this);
+        String current = webView.getUrl();
+        if (current == null || current.trim().isEmpty()) current = "Página inicial";
+        url.setText(current);
+        url.setTextColor(softTextColor);
+        url.setTextSize(12);
+        url.setSingleLine(true);
+        LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(-1, -2);
+        urlParams.topMargin = dp(4);
+        urlParams.bottomMargin = dp(12);
+        panel.addView(url, urlParams);
+
+        panel.addView(menuRow("Copiar link", "Copiar endereço atual", () -> {
+            dialog.dismiss();
+            copyCurrentUrl();
+        }));
+
+        panel.addView(menuRow("Recarregar", "Atualizar a página aberta", () -> {
+            dialog.dismiss();
+            webView.reload();
+        }));
+
+        panel.addView(menuRow("Página inicial", "Voltar para a home Aetheris", () -> {
+            dialog.dismiss();
+            showHome();
+        }));
+
+        panel.addView(menuRow("Compartilhar", "Enviar link para outro app", () -> {
+            dialog.dismiss();
+            shareCurrentUrl();
+        }));
+
+        panel.addView(menuRow("Sobre", "Versão 0.1.1 Glass Orbit", () -> {
+            dialog.dismiss();
+            showAboutSheet();
+        }));
+
+        dialog.setContentView(panel);
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        dialog.setOnShowListener(d -> {
+            Window w = dialog.getWindow();
+            if (w != null) {
+                w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                w.setDimAmount(0.55f);
+                w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                w.setGravity(Gravity.BOTTOM);
+                w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private View menuRow(String title, String caption, final Runnable action) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(dp(14), dp(12), dp(14), dp(12));
+        row.setBackground(roundGradient(Color.argb(90, 16, 32, 54), Color.argb(60, 12, 24, 42), dp(22), Color.argb(55, 49, 92, 127), 1));
+        row.setOnClickListener(v -> action.run());
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.topMargin = dp(8);
+        row.setLayoutParams(params);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextColor(textColor);
+        titleView.setTextSize(16);
+        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        row.addView(titleView);
+
+        TextView captionView = new TextView(this);
+        captionView.setText(caption);
+        captionView.setTextColor(softTextColor);
+        captionView.setTextSize(12);
+        LinearLayout.LayoutParams capParams = new LinearLayout.LayoutParams(-1, -2);
+        capParams.topMargin = dp(3);
+        row.addView(captionView, capParams);
+
+        return row;
     }
 
     private void copyCurrentUrl() {
         String url = webView.getUrl();
-        if (url == null) url = addressBar.getText().toString();
+        if (url == null || url.trim().isEmpty()) url = addressBar.getText().toString();
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (clipboard != null) {
             clipboard.setPrimaryClip(ClipData.newPlainText("Aetheris URL", url));
@@ -581,12 +773,21 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showAbout() {
-        new AlertDialog.Builder(this)
-                .setTitle("Aetheris Nova")
-                .setMessage("Aetheris Nova 0.1.0 Foundation\\nNova base oficial, limpa e criada para uma interface própria.")
-                .setPositiveButton("OK", null)
-                .show();
+    private void shareCurrentUrl() {
+        String url = webView.getUrl();
+        if (url == null || url.trim().isEmpty()) url = addressBar.getText().toString();
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, url);
+        try {
+            startActivity(Intent.createChooser(send, "Compartilhar com"));
+        } catch (Exception e) {
+            Toast.makeText(this, "Não foi possível compartilhar", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showAboutSheet() {
+        Toast.makeText(this, "Aetheris Nova 0.1.1 — Glass Orbit UI", Toast.LENGTH_LONG).show();
     }
 
     @Override
