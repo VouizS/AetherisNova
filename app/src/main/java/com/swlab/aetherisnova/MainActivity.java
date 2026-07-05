@@ -9,6 +9,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
@@ -36,6 +37,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -50,7 +52,14 @@ public class MainActivity extends Activity {
     private EditText addressBar;
     private FrameLayout stage;
     private View homeOverlay;
+    private ProgressBar loadProgress;
+    private TextView pageState;
+    private TextView homeStatus;
     private PermissionRequest pendingPermissionRequest;
+
+    private String currentTitle = "Aetheris";
+    private String currentUrl = "";
+    private boolean pageIsLoading = false;
 
     private final int voidColor = Color.rgb(3, 8, 20);
     private final int nightColor = Color.rgb(6, 17, 31);
@@ -61,7 +70,6 @@ public class MainActivity extends Activity {
     private final int orbitColor = Color.rgb(68, 232, 255);
     private final int orbitSoftColor = Color.rgb(154, 245, 255);
     private final int auroraColor = Color.rgb(108, 125, 255);
-    private final int lumenColor = Color.rgb(183, 156, 255);
     private final int textColor = Color.rgb(246, 250, 255);
     private final int softTextColor = Color.rgb(174, 190, 210);
     private final int lineColor = Color.rgb(49, 92, 127);
@@ -102,7 +110,7 @@ public class MainActivity extends Activity {
         shell.setPadding(dp(12), dp(8), dp(12), dp(10));
         shell.setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
 
-        shell.addView(createTopBar());
+        shell.addView(createTopArea());
 
         stage = new FrameLayout(this);
         LinearLayout.LayoutParams stageParams = new LinearLayout.LayoutParams(-1, 0, 1);
@@ -125,11 +133,42 @@ public class MainActivity extends Activity {
         setContentView(root);
     }
 
+    private View createTopArea() {
+        LinearLayout topArea = new LinearLayout(this);
+        topArea.setOrientation(LinearLayout.VERTICAL);
+        topArea.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
+
+        topArea.addView(createTopBar());
+
+        loadProgress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        loadProgress.setMax(100);
+        loadProgress.setProgress(0);
+        loadProgress.setVisibility(View.INVISIBLE);
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(3));
+        progressParams.leftMargin = dp(62);
+        progressParams.rightMargin = dp(72);
+        progressParams.topMargin = dp(4);
+        topArea.addView(loadProgress, progressParams);
+
+        pageState = new TextView(this);
+        pageState.setText("Página inicial");
+        pageState.setTextColor(softTextColor);
+        pageState.setTextSize(11);
+        pageState.setSingleLine(true);
+        pageState.setGravity(Gravity.CENTER);
+        pageState.setVisibility(View.GONE);
+        LinearLayout.LayoutParams stateParams = new LinearLayout.LayoutParams(-1, dp(18));
+        stateParams.leftMargin = dp(64);
+        stateParams.rightMargin = dp(72);
+        topArea.addView(pageState, stateParams);
+
+        return topArea;
+    }
+
     private View createTopBar() {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(0, 0, 0, 0);
         top.setLayoutParams(new LinearLayout.LayoutParams(-1, dp(58)));
 
         TextView mark = new TextView(this);
@@ -140,6 +179,7 @@ public class MainActivity extends Activity {
         mark.setTextSize(19);
         mark.setBackground(circleGradient());
         mark.setElevation(dp(8));
+        mark.setOnClickListener(v -> showHome());
         LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(dp(48), dp(48));
         markParams.rightMargin = dp(10);
         top.addView(mark, markParams);
@@ -264,15 +304,15 @@ public class MainActivity extends Activity {
         statusParams.topMargin = dp(20);
         home.addView(status, statusParams);
 
-        TextView statusTitle = smallLabel("Aetheris Nova 0.1.1");
+        TextView statusTitle = smallLabel("Aetheris Nova 0.1.2");
         statusTitle.setTextColor(orbitSoftColor);
         statusTitle.setTypeface(Typeface.DEFAULT_BOLD);
         status.addView(statusTitle);
 
-        TextView statusBody = smallLabel("Interface Glass Orbit aplicada como base visual própria. Ainda é leve, sem blur real pesado.");
+        homeStatus = smallLabel("Interação do navegador melhorada: progresso, estado de página e menu expandido.");
         LinearLayout.LayoutParams bodyParams = new LinearLayout.LayoutParams(-1, -2);
         bodyParams.topMargin = dp(6);
-        status.addView(statusBody, bodyParams);
+        status.addView(homeStatus, bodyParams);
 
         return scroll;
     }
@@ -329,18 +369,26 @@ public class MainActivity extends Activity {
         TextView back = dockButton("‹");
         back.setOnClickListener(v -> {
             if (webView.canGoBack()) webView.goBack();
+            else showHome();
         });
 
         TextView forward = dockButton("›");
         forward.setOnClickListener(v -> {
             if (webView.canGoForward()) webView.goForward();
+            else toast("Sem próxima página");
         });
 
         TextView home = dockButton("⌂");
         home.setOnClickListener(v -> showHome());
 
         TextView reload = dockButton("↻");
-        reload.setOnClickListener(v -> webView.reload());
+        reload.setOnClickListener(v -> {
+            if (homeOverlay.getVisibility() == View.VISIBLE) {
+                toast("Página inicial");
+            } else {
+                webView.reload();
+            }
+        });
 
         TextView menu = dockButton("☰");
         menu.setOnClickListener(v -> showMenuSheet());
@@ -390,7 +438,7 @@ public class MainActivity extends Activity {
     }
 
     private GradientDrawable backgroundDrawable() {
-        GradientDrawable drawable = new GradientDrawable(
+        return new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 new int[]{
                         Color.rgb(3, 8, 20),
@@ -398,7 +446,6 @@ public class MainActivity extends Activity {
                         Color.rgb(7, 20, 35)
                 }
         );
-        return drawable;
     }
 
     private GradientDrawable circleGradient() {
@@ -434,7 +481,12 @@ public class MainActivity extends Activity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
         settings.setSupportMultipleWindows(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
 
         CookieManager.getInstance().setAcceptCookie(true);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -453,13 +505,56 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                pageIsLoading = true;
+                currentUrl = url == null ? "" : url;
+                addressBar.setText(currentUrl);
+                updatePageState("Carregando…");
+                setProgressVisible(true, 5);
+                super.onPageStarted(view, url, favicon);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                addressBar.setText(url == null ? "" : url);
+                pageIsLoading = false;
+                currentUrl = url == null ? "" : url;
+                addressBar.setText(currentUrl);
+                updatePageState(currentTitle);
+                setProgressVisible(false, 100);
                 super.onPageFinished(view, url);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                pageIsLoading = false;
+                setProgressVisible(false, 0);
+                updatePageState("Erro ao carregar");
+                toast("Erro ao carregar página");
+                super.onReceivedError(view, errorCode, description, failingUrl);
             }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                setProgressVisible(newProgress < 100, newProgress);
+                if (newProgress < 100) {
+                    updatePageState("Carregando " + newProgress + "%");
+                } else {
+                    updatePageState(currentTitle);
+                }
+                super.onProgressChanged(view, newProgress);
+            }
+
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                if (title != null && !title.trim().isEmpty()) {
+                    currentTitle = title.trim();
+                    updatePageState(currentTitle);
+                }
+                super.onReceivedTitle(view, title);
+            }
+
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 handleWebPermissionRequest(request);
@@ -469,15 +564,37 @@ public class MainActivity extends Activity {
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> startDownload(url, userAgent, contentDisposition, mimeType));
     }
 
+    private void setProgressVisible(boolean visible, int progress) {
+        if (loadProgress == null) return;
+        loadProgress.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        int safeProgress = Math.max(0, Math.min(100, progress));
+        loadProgress.setProgress(safeProgress);
+    }
+
+    private void updatePageState(String text) {
+        if (pageState == null) return;
+        String safeText = text == null || text.trim().isEmpty() ? "Aetheris" : text.trim();
+        pageState.setText(safeText);
+        pageState.setVisibility(homeOverlay != null && homeOverlay.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+    }
+
     private void showHome() {
+        currentTitle = "Página inicial";
+        currentUrl = "";
         addressBar.setText("");
+        setProgressVisible(false, 0);
+        if (pageState != null) {
+            pageState.setVisibility(View.GONE);
+        }
         homeOverlay.setVisibility(View.VISIBLE);
     }
 
     private void openUrl(String input) {
         String url = normalizeInput(input);
         homeOverlay.setVisibility(View.GONE);
+        updatePageState("Preparando navegação…");
         addressBar.setText(url);
+        currentUrl = url;
         webView.loadUrl(url);
     }
 
@@ -486,6 +603,12 @@ public class MainActivity extends Activity {
         if (value.isEmpty()) return "https://www.google.com";
 
         String lower = value.toLowerCase(Locale.US);
+
+        if ("google".equals(lower)) return "https://www.google.com";
+        if ("youtube".equals(lower)) return "https://www.youtube.com";
+        if ("github".equals(lower)) return "https://github.com";
+        if ("duck".equals(lower) || "duckduckgo".equals(lower)) return "https://duckduckgo.com";
+
         if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("file://")) {
             return value;
         }
@@ -582,7 +705,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
             return true;
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "Nenhum app encontrado para abrir esse link", Toast.LENGTH_SHORT).show();
+            toast("Nenhum app encontrado para abrir esse link");
             return true;
         } catch (Exception e) {
             return false;
@@ -653,10 +776,10 @@ public class MainActivity extends Activity {
             DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
             if (dm != null) {
                 dm.enqueue(request);
-                Toast.makeText(this, "Download iniciado", Toast.LENGTH_SHORT).show();
+                toast("Download iniciado");
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Não foi possível iniciar o download", Toast.LENGTH_SHORT).show();
+            toast("Não foi possível iniciar o download");
         }
     }
 
@@ -678,7 +801,7 @@ public class MainActivity extends Activity {
 
         TextView url = new TextView(this);
         String current = webView.getUrl();
-        if (current == null || current.trim().isEmpty()) current = "Página inicial";
+        if (current == null || current.trim().isEmpty() || homeOverlay.getVisibility() == View.VISIBLE) current = "Página inicial";
         url.setText(current);
         url.setTextColor(softTextColor);
         url.setTextSize(12);
@@ -688,19 +811,14 @@ public class MainActivity extends Activity {
         urlParams.bottomMargin = dp(12);
         panel.addView(url, urlParams);
 
+        panel.addView(menuRow("Nova busca", "Abrir a home do Aetheris", () -> {
+            dialog.dismiss();
+            showHome();
+        }));
+
         panel.addView(menuRow("Copiar link", "Copiar endereço atual", () -> {
             dialog.dismiss();
             copyCurrentUrl();
-        }));
-
-        panel.addView(menuRow("Recarregar", "Atualizar a página aberta", () -> {
-            dialog.dismiss();
-            webView.reload();
-        }));
-
-        panel.addView(menuRow("Página inicial", "Voltar para a home Aetheris", () -> {
-            dialog.dismiss();
-            showHome();
         }));
 
         panel.addView(menuRow("Compartilhar", "Enviar link para outro app", () -> {
@@ -708,17 +826,28 @@ public class MainActivity extends Activity {
             shareCurrentUrl();
         }));
 
-        panel.addView(menuRow("Sobre", "Versão 0.1.1 Glass Orbit", () -> {
+        panel.addView(menuRow("Recarregar", "Atualizar a página aberta", () -> {
             dialog.dismiss();
-            showAboutSheet();
+            if (homeOverlay.getVisibility() == View.VISIBLE) toast("Página inicial");
+            else webView.reload();
+        }));
+
+        panel.addView(menuRow("Abrir downloads", "Ver arquivos baixados no Android", () -> {
+            dialog.dismiss();
+            openDownloads();
+        }));
+
+        panel.addView(menuRow("Estado da página", currentTitle, () -> {
+            dialog.dismiss();
+            toast(currentTitle);
+        }));
+
+        panel.addView(menuRow("Sobre", "Versão 0.1.2 Browser Interaction Core", () -> {
+            dialog.dismiss();
+            toast("Aetheris Nova 0.1.2 — Browser Interaction Core");
         }));
 
         dialog.setContentView(panel);
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
 
         dialog.setOnShowListener(d -> {
             Window w = dialog.getWindow();
@@ -756,6 +885,7 @@ public class MainActivity extends Activity {
         captionView.setText(caption);
         captionView.setTextColor(softTextColor);
         captionView.setTextSize(12);
+        captionView.setSingleLine(true);
         LinearLayout.LayoutParams capParams = new LinearLayout.LayoutParams(-1, -2);
         capParams.topMargin = dp(3);
         row.addView(captionView, capParams);
@@ -766,28 +896,39 @@ public class MainActivity extends Activity {
     private void copyCurrentUrl() {
         String url = webView.getUrl();
         if (url == null || url.trim().isEmpty()) url = addressBar.getText().toString();
+        if (url == null || url.trim().isEmpty()) url = "Página inicial";
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (clipboard != null) {
             clipboard.setPrimaryClip(ClipData.newPlainText("Aetheris URL", url));
-            Toast.makeText(this, "Link copiado", Toast.LENGTH_SHORT).show();
+            toast("Link copiado");
         }
     }
 
     private void shareCurrentUrl() {
         String url = webView.getUrl();
         if (url == null || url.trim().isEmpty()) url = addressBar.getText().toString();
+        if (url == null || url.trim().isEmpty()) {
+            toast("Nenhum link para compartilhar");
+            return;
+        }
+
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT, url);
         try {
             startActivity(Intent.createChooser(send, "Compartilhar com"));
         } catch (Exception e) {
-            Toast.makeText(this, "Não foi possível compartilhar", Toast.LENGTH_SHORT).show();
+            toast("Não foi possível compartilhar");
         }
     }
 
-    private void showAboutSheet() {
-        Toast.makeText(this, "Aetheris Nova 0.1.1 — Glass Orbit UI", Toast.LENGTH_LONG).show();
+    private void openDownloads() {
+        try {
+            Intent intent = new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS);
+            startActivity(intent);
+        } catch (Exception e) {
+            toast("Abra a pasta Download no gerenciador de arquivos");
+        }
     }
 
     @Override
@@ -801,6 +942,10 @@ public class MainActivity extends Activity {
         } else {
             showHome();
         }
+    }
+
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     private int dp(int value) {
