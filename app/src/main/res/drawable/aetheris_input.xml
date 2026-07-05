@@ -1,0 +1,6 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/aetheris_panel_high" />
+    <corners android:radius="28dp" />
+    <stroke android:width="1dp" android:color="@color/aetheris_orbit" />
+    <padding android:left="18dp" android:top="10dp" android:right="18dp" android:bottom="10dp" />
+</shape>

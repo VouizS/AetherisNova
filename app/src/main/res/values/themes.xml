@@ -1,0 +1,11 @@
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">@color/aetheris_void</item>
+        <item name="android:statusBarColor">@color/aetheris_void</item>
+        <item name="android:navigationBarColor">@color/aetheris_deep</item>
+        <item name="android:colorAccent">@color/aetheris_orbit</item>
+    </style>
+</resources>

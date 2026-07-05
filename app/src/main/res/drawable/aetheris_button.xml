@@ -1,0 +1,14 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape>
+            <solid android:color="@color/aetheris_lumen" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <gradient android:startColor="@color/aetheris_orbit" android:endColor="@color/aetheris_nebula" android:angle="0" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</selector>

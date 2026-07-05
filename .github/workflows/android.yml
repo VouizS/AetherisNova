@@ -1,0 +1,63 @@
+name: Android Debug Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Prepare APK artifact
+        run: |
+          mkdir -p artifact-apk
+          cp app/build/outputs/apk/debug/app-debug.apk artifact-apk/app-debug.apk
+
+      - name: Prepare source backup
+        run: |
+          mkdir -p artifact-source
+          zip -r artifact-source/Aetheris-Nova-source-backup.zip . \
+            -x ".git/*" \
+            -x "artifact-apk/*" \
+            -x "artifact-source/*" \
+            -x ".gradle/*" \
+            -x "app/build/*" \
+            -x "build/*"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aetheris-nova-debug-apk
+          path: artifact-apk/app-debug.apk
+
+      - name: Upload source backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aetheris-nova-source-backup
+          path: artifact-source/Aetheris-Nova-source-backup.zip

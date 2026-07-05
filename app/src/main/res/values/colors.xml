@@ -1,0 +1,15 @@
+<resources>
+    <color name="aetheris_void">#050914</color>
+    <color name="aetheris_deep">#07101F</color>
+    <color name="aetheris_panel">#0B1628</color>
+    <color name="aetheris_panel_soft">#101D33</color>
+    <color name="aetheris_panel_high">#152845</color>
+    <color name="aetheris_orbit">#42E8FF</color>
+    <color name="aetheris_orbit_soft">#7DEBFF</color>
+    <color name="aetheris_nebula">#5A7CFF</color>
+    <color name="aetheris_lumen">#B69CFF</color>
+    <color name="aetheris_text">#F6FAFF</color>
+    <color name="aetheris_text_soft">#B8C7DA</color>
+    <color name="aetheris_line">#28496C</color>
+    <color name="ic_launcher_background">#050B18</color>
+</resources>
