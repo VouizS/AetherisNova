@@ -24,8 +24,9 @@
     <color name="colorOnSurface">#F6FAFF</color>
     <color name="aetheris_surface">#0F1B2D</color>
     <color name="aetheris_surface_high">#16263C</color>
-    <color name="aetheris_toolbar">#091525</color>
+    <color name="aetheris_toolbar">#D90A1525</color>
     <color name="aetheris_toolbar_high">#122238</color>
     <color name="aetheris_text_muted">#7E8DA3</color>
     <color name="aetheris_line_soft">#213B56</color>
+    <color name="aetheris_toolbar_clear">#B30A1525</color>
 </resources>
