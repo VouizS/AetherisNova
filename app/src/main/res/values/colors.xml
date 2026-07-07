@@ -1,7 +1,7 @@
 <resources>
-    <color name="aetheris_void">#030814</color>
-    <color name="aetheris_night">#06111F</color>
-    <color name="aetheris_deep">#09182B</color>
+    <color name="aetheris_void">#050914</color>
+    <color name="aetheris_night">#07101F</color>
+    <color name="aetheris_deep">#0A1628</color>
     <color name="aetheris_glass">#1A203247</color>
     <color name="aetheris_glass_high">#263A526C</color>
     <color name="aetheris_orbit">#44E8FF</color>
@@ -17,9 +17,15 @@
     <color name="aetheris_panel">#0B1628</color>
     <color name="aetheris_panel_soft">#102032</color>
     <color name="colorPrimary">#44E8FF</color>
-    <color name="colorPrimaryDark">#030814</color>
+    <color name="colorPrimaryDark">#050914</color>
     <color name="colorAccent">#44E8FF</color>
-    <color name="colorBackground">#030814</color>
-    <color name="colorSurface">#0B1628</color>
+    <color name="colorBackground">#050914</color>
+    <color name="colorSurface">#0F1B2D</color>
     <color name="colorOnSurface">#F6FAFF</color>
+    <color name="aetheris_surface">#0F1B2D</color>
+    <color name="aetheris_surface_high">#16263C</color>
+    <color name="aetheris_toolbar">#091525</color>
+    <color name="aetheris_toolbar_high">#122238</color>
+    <color name="aetheris_text_muted">#7E8DA3</color>
+    <color name="aetheris_line_soft">#213B56</color>
 </resources>
