@@ -1,5 +1,11 @@
 package com.swlab.aetherisnova;
 
+import java.nio.charset.StandardCharsets;
+
+import java.io.InputStream;
+
+import java.io.ByteArrayOutputStream;
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
@@ -437,6 +443,8 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         if (Build.VERSION.SDK_INT >= 21) CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
+        webView.addJavascriptInterface(new AetherisVideoBridge(this), "AetherisBridge");
+
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return handleUrl(request.getUrl().toString()); }
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url) { return handleUrl(url); }
@@ -448,6 +456,7 @@ public class MainActivity extends Activity {
                 updateAddressIcon(url);
                 updatePageState("Carregando…");
                 updateLoadingUi(true, 5);
+                injectWebRtcFilterSoon();
                 super.onPageStarted(view, url, favicon);
             }
 
@@ -457,6 +466,7 @@ public class MainActivity extends Activity {
                 updateAddressIcon(url);
                 updatePageState(currentTitle);
                 updateLoadingUi(false, 100);
+                injectWebRtcFilterNow();
                 super.onPageFinished(view, url);
             }
 
@@ -547,6 +557,7 @@ public class MainActivity extends Activity {
         addressBar.setText(url);
         bringChromeToFront();
         webView.loadUrl(url);
+        injectWebRtcFilterSoon();
     }
 
     private String normalizeInput(String input) {
@@ -717,6 +728,7 @@ public class MainActivity extends Activity {
         panel.addView(menuRow(R.drawable.ic_aetheris_share, "Compartilhar", "Enviar link para outro app", () -> { dialog.dismiss(); shareCurrentUrl(); }));
         panel.addView(menuRow(R.drawable.ic_aetheris_refresh, "Recarregar", "Atualizar a página aberta", () -> { dialog.dismiss(); if (homeOverlay.getVisibility() == View.VISIBLE) toast("Página inicial"); else webView.reload(); }));
         panel.addView(menuRow(R.drawable.ic_aetheris_download, "Downloads", "Abrir downloads do Android", () -> { dialog.dismiss(); openDownloads(); }));
+        panel.addView(menuRow(R.drawable.ic_aetheris_filter, "Efeitos de vídeo", "Filtro atual: " + AetherisVideoBridge.getVideoFilterLabel(), () -> { dialog.dismiss(); showVideoEffectsSheet(); }));
         panel.addView(menuRow(R.drawable.ic_aetheris_info, "Sobre", "Aetheris Nova 0.1.3-r1", () -> { dialog.dismiss(); toast("Aetheris Nova 0.1.3-r1"); }));
 
         dialog.setContentView(panel);
@@ -770,6 +782,96 @@ public class MainActivity extends Activity {
 
         return row;
     }
+
+
+    private void injectWebRtcFilterSoon() {
+        if (webView == null) return;
+        webView.postDelayed(() -> injectWebRtcFilterNow(), 450);
+        webView.postDelayed(() -> injectWebRtcFilterNow(), 1200);
+    }
+
+    private void injectWebRtcFilterNow() {
+        if (webView == null) return;
+        if (Build.VERSION.SDK_INT < 19) return;
+
+        try {
+            InputStream inputStream = getAssets().open("aetheris_webrtc_filter.js");
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int length;
+
+            while ((length = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, length);
+            }
+
+            inputStream.close();
+
+            String script = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+            webView.evaluateJavascript(script, null);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void showVideoEffectsSheet() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(14), dp(18), dp(18));
+        panel.setBackground(roundDrawable(toolbarColor, dp(22), Color.TRANSPARENT, 0));
+
+        TextView title = label("Efeitos de vídeo", 20, textColor);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.LEFT);
+        panel.addView(title);
+
+        TextView info = label("Experimental: tenta aplicar filtro real no vídeo enviado pelo WebRTC. Não é overlay falso.", 12, mutedTextColor);
+        info.setGravity(Gravity.LEFT);
+        LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(-1, -2);
+        infoParams.topMargin = dp(6);
+        infoParams.bottomMargin = dp(10);
+        panel.addView(info, infoParams);
+
+        panel.addView(videoFilterRow(dialog, "Desligado", "off", "Usa câmera normal, sem modificação."));
+        panel.addView(videoFilterRow(dialog, "Cinza", "gray", "Converte a câmera para preto e branco."));
+        panel.addView(videoFilterRow(dialog, "Frio", "cool", "Ajuste azul/frio leve no vídeo."));
+        panel.addView(videoFilterRow(dialog, "Contraste", "contrast", "Aumenta contraste de forma leve."));
+        panel.addView(videoFilterRow(dialog, "Orbit leve", "orbit", "Filtro visual leve com marca orbital discreta."));
+
+        dialog.setContentView(panel);
+
+        dialog.setOnShowListener(d -> {
+            Window w = dialog.getWindow();
+            if (w != null) {
+                w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                w.setDimAmount(0.45f);
+                w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                w.setGravity(Gravity.BOTTOM);
+                w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private View videoFilterRow(Dialog dialog, String title, String mode, String caption) {
+        String current = AetherisVideoBridge.getVideoFilterModeValue();
+        String label = current.equals(mode) ? caption + "  • ativo" : caption;
+
+        return menuRow(R.drawable.ic_aetheris_filter, title, label, () -> {
+            AetherisVideoBridge.setVideoFilterMode(mode);
+            injectWebRtcFilterNow();
+            dialog.dismiss();
+
+            if ("off".equals(mode)) {
+                toast("Efeitos de vídeo desligados");
+            } else {
+                toast("Filtro " + title + " ativo para próximas capturas de câmera");
+            }
+        });
+    }
+
 
     private void copyCurrentUrl() {
         String url = webView.getUrl();
